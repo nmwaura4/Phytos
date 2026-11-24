@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Phytoseilus Receiving</title>
+
+    <style>
+        :root {
+            --green: #1e6b45;
+            --ink: #18312b;
+            --muted: #6e7d77;
+            --line: #dce7df;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, Segoe UI, sans-serif;
+            color: var(--ink);
+            background: #f4f7f3;
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid var(--line);
+            padding: 18px 5%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--green);
+        }
+
+        .insect-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #e4f3e9;
+            font-size: 24px;
+            line-height: 1;
+        }
+
+        header strong {
+            font-size: 20px;
+            color: var(--green);
+        }
+
+        header a,
+        .button {
+            text-decoration: none;
+            background: var(--green);
+            color: white;
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: auto;
+            padding: 28px 20px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .card span {
+            display: block;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .card strong {
+            display: block;
+            margin-top: 8px;
+            font-size: 26px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin: 24px 0;
+        }
+
+        input,
+        select {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        table {
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 13px 14px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        th {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .status {
+            padding: 5px 8px;
+            border-radius: 999px;
+            background: #eef1ed;
+            font-size: 12px;
+        }
+
+        .accepted {
+            background: #daf4e5;
+            color: #17633b;
+        }
+
+        .rejected {
+            background: #fde4df;
+            color: #94382c;
+        }
+
+        .pending {
+            background: #fff0cf;
+            color: #805b12;
+        }
+
+        .rate-red,
+        .rate-yellow {
+            display: inline-block;
+            padding: 5px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        .rate-red {
+            background: #fde4df;
+            color: #94382c;
+        }
+
+        .rate-yellow {
+            background: #fff0cf;
+            color: #805b12;
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 40px;
+        }
+
+        @media (max-width: 700px) {
+            .cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            table {
+                display: block;
+                overflow: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="brand">
+            <img
+                src="{% static 'company logo.jpg' %}"
+                alt="Company Logo"
+                style="height: 48px; width: auto; object-fit: contain;"
+            >
+            <strong>Real Ipm</strong>
+            <strong>Phytoseilus Quality Assessment</strong>
+        </div>
+
+        <nav class="header-actions" aria-label="Dashboard actions">
+            <a href="{% url 'qc_reports' %}">Reports</a>
+            <a href="{% url 'received_predator_create' %}">
+                + New reception
+            </a>
+        </nav>
+    </header>
+
+    <main>
+        {% if messages %}
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+
+        <section class="cards">
+            <div class="card">
+                <span>Total batches</span>
+                <strong>{{ summary.total|default:0 }}</strong>
+            </div>
+
+            <div class="card">
+                <span>Number of tubs</span>
+                <strong>{{ summary.tubs|default:0 }}</strong>
+            </div>
+
+            <div class="card">
+                <span>Average mortality</span>
+                <strong>{{ summary.average_mortality|default:0|floatformat:2 }}%</strong>
+            </div>
+
+            <div class="card">
+                <span>Pending / Accepted / Rejected</span>
+                <strong>
+                    {{ pending_count }} /
+                    {{ accepted_count }} /
+                    {{ rejected_count }}
+                </strong>
+            </div>
+        </section>
+
+        <form class="filters" method="get">
+            <input
+                name="supplier"
+                value="{{ supplier_filter }}"
+                placeholder="Search supplier or batch number"
+            >
+
+            <select name="status">
+                <option value="">All statuses</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>
+                    Pending
+                </option>
+                <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>
+                    Accepted
+                </option>
+                <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>
+                    Rejected
+                </option>
+            </select>
+
+            <select name="period">
+                <option value="">All dates</option>
+                <option value="daily" {% if period_filter == 'daily' %}selected{% endif %}>Today</option>
+                <option value="weekly" {% if period_filter == 'weekly' %}selected{% endif %}>This week</option>
+                <option value="monthly" {% if period_filter == 'monthly' %}selected{% endif %}>This month</option>
+            </select>
+
+            <button class="button" type="submit">
+                Filter
+            </button>
+
+            {% if supplier_filter or status_filter or period_filter %}
+                <a class="button secondary" href="{% url 'api_dashboard' %}">Clear filters</a>
+            {% endif %}
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Batch</th>
+                    <th>Supplier</th>
+                    <th>Tubs</th>
+                    <th>Live predators</th>
+                    <th>Phytoseiulus mortality</th>
+                    <th>Prey mortality</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for record in records %}
+                    <tr>
+                        <td><strong>{{ record.batch_number }}</strong></td>
+                        <td>{{ record.supplier_name }}</td>
+                        <td>{{ record.number_of_tubs }}</td>
+                        <td>{{ record.live_predators }}</td>
+                        <td>
+                            <span class="{% if record.mortality_rate >= 10 %}rate-red{% elif record.mortality_rate >= 5 %}rate-yellow{% endif %}">
+                                {{ record.mortality_rate }}%
+                            </span>
+                        </td>
+                        <td>
+                            <span class="{% if record.prey_mortality_rate > 6 %}rate-red{% endif %}">
+                                {{ record.prey_mortality_rate }}%
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status {{ record.status }}">
+                                {{ record.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'received_predator_detail' record.pk %}">View</a>
+                            |
+                            <a href="{% url 'received_predator_edit' record.pk %}">Edit</a>
+                            |
+                            <a href="/api/received-predators/{{ record.pk }}/quality_report/">
+                                PDF
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td class="empty" colspan="8">
+                            No received batches found.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+</body>
+</html>

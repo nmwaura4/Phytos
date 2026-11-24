@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{{ record.batch_number }}</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Segoe UI, sans-serif;
+            background: #f4f7f3;
+            color: #3b9c86;
+        }
+
+        main {
+            max-width: 760px;
+            margin: 32px auto;
+            padding: 26px;
+            background: white;
+            border: 1px solid #dce7df;
+            border-radius: 14px;
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .company-logo {
+            height: 52px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        .item {
+            border-bottom: 1px solid #e5ece7;
+            padding: 12px 0;
+        }
+
+        .item span {
+            display: block;
+            color: #6e7d77;
+            font-size: 12px;
+        }
+
+        .item strong {
+            display: block;
+            margin-top: 5px;
+        }
+
+        .rate-red {
+            color: #94382c;
+        }
+
+        .rate-yellow {
+            color: #805b12;
+        }
+
+        .button {
+            padding: 11px 16px;
+            border-radius: 8px;
+            border: 0;
+            background: #1e6b45;
+            color: white;
+            text-decoration: none;
+        }
+
+        .secondary {
+            background: #edf3ef;
+            color: #18312b;
+        }
+
+        .danger {
+            background: #a74436;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #0fdd3f;
+            border-radius: 8px;
+        }
+
+        .quality-heading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #9ef0c7;
+            font-size: 24px;
+            margin: 24px 0 10px;
+        }
+
+        .quality-heading .insect-logo {
+            font-size: 26px;
+        }
+
+        @media (max-width: 600px) {
+            .top {
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .company-logo {
+                height: 42px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="top">
+            <div class="brand">
+                <img
+                    class="company-logo"
+                    src="{% static 'company logo.jpg' %}"
+                    alt="Company Logo"
+                >
+                <h1>Batch {{ record.batch_number }}</h1>
+            </div>
+            <a class="button secondary" href="{% url 'api_dashboard' %}">Dashboard</a>
+        </div>
+
+        <div class="quality-heading">
+            <span class="insect-logo" aria-label="Insect logo">🪲</span>
+            <h3>Quality Analysis</h3>
+        </div>
+
+        <div class="grid">
+            <div class="item">
+                <span>Supplier</span>
+                <strong>{{ record.supplier_name }}</strong>
+            </div>
+
+            <div class="item">
+                <span>Supplier reference</span>
+                <strong>{{ record.supplier_reference|default:'-' }}</strong>
+            </div>
+
+            <div class="item">
+                <span>Tubs</span>
+                <strong>{{ record.number_of_tubs }}</strong>
+            </div>
+
+            <div class="item">
+                <span>Received</span>
+                <strong>{{ record.received_at|date:'Y-m-d H:i' }}</strong>
+            </div>
+
+            <div class="item">
+                <span>Live predators</span>
+                <strong>{{ record.live_predators }}</strong>
+            </div>
+
+            <div class="item">
+                <span>Live preys</span>
+                <strong>{{ record.live_preys }}</strong>
+            </div>
+
+            <div class="item">
+                <span>Dead predators</span>
+                <strong>{{ record.dead_predators }}</strong>
+            </div>
+
+            <div class="item">
+                <span>Dead preys</span>
+                <strong>{{ record.dead_preys }}</strong>
+            </div>
+
+            <div class="item">
+                <span>Phytoseiulus mortality</span>
+                <strong class="{% if record.mortality_rate >= 10 %}rate-red{% elif record.mortality_rate >= 5 %}rate-yellow{% endif %}">
+                    {{ record.mortality_rate }}%
+                </strong>
+            </div>
+
+            <div class="item">
+                <span>Prey mortality</span>
+                <strong class="{% if record.prey_mortality_rate > 6 %}rate-red{% endif %}">
+                    {{ record.prey_mortality_rate }}%
+                </strong>
+            </div>
+
+            <div class="item">
+                <span>Contamination</span>
+                <strong>{{ record.contaminant|default:'-' }} ({{ record.contamination_level }})</strong>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <p>
+                <label><strong>Quality status</strong></label>
+                <br>
+                <select name="status">
+                    <option value="pending" {% if record.status == 'pending' %}selected{% endif %}>
+                        Pending inspection
+                    </option>
+                    <option value="accepted" {% if record.status == 'accepted' %}selected{% endif %}>
+                        Accepted
+                    </option>
+                    <option value="rejected" {% if record.status == 'rejected' %}selected{% endif %}>
+                        Rejected
+                    </option>
+                </select>
+            </p>
+
+            <p>
+                <label><strong>Comments</strong></label>
+                <br>
+                <textarea name="comments" rows="4">{{ record.comments }}</textarea>
+            </p>
+
+            <div class="actions">
+                <button class="button" type="submit">Update status</button>
+                <a class="button secondary" href="{% url 'received_predator_edit' record.pk %}">Edit</a>
+                <a class="button" href="/api/received-predators/{{ record.pk }}/quality_report/">Download PDF</a>
+                <a class="button danger" href="{% url 'received_predator_delete' record.pk %}">Delete</a>
+            </div>
+        </form>
+    </main>
+</body>
+</html>

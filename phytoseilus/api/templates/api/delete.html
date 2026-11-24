@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Delete batch</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Segoe UI, sans-serif;
+            background: #f4f7f3;
+            color: #18312b;
+        }
+
+        main {
+            max-width: 520px;
+            margin: 80px auto;
+            padding: 26px;
+            background: white;
+            border: 1px solid #dce7df;
+            border-radius: 14px;
+            text-align: center;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .button {
+            padding: 11px 16px;
+            border-radius: 8px;
+            border: 0;
+            text-decoration: none;
+        }
+
+        .danger {
+            background: #a74436;
+            color: white;
+        }
+
+        .secondary {
+            background: #edf3ef;
+            color: #18312b;
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <h1>Delete batch {{ record.batch_number }}?</h1>
+        <p>This action cannot be undone.</p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="actions">
+                <a
+                    class="button secondary"
+                    href="{% url 'received_predator_detail' record.pk %}"
+                >
+                    Cancel
+                </a>
+
+                <button class="button danger" type="submit">
+                    Delete batch
+                </button>
+            </div>
+        </form>
+    </main>
+</body>
+</html>
