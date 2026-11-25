@@ -3,16 +3,109 @@ from io import BytesIO
 import re
 import zlib
 
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from openpyxl import load_workbook
 
+from phytoseilus.auth import create_user, get_user_by_email, require_authentication
 from .models import ReceivedPredator
 
 
-class QCWorkbookDownloadTests(TestCase):
+class AuthenticationHelperTests(TestCase):
+	def test_create_user_stores_a_hashed_password(self):
+		password = "cT9#vQ2!mL7@pR4"
+		user = create_user("user@example.com", password)
+
+		self.assertNotEqual(user.password, password)
+		self.assertTrue(user.check_password(password))
+		self.assertEqual(get_user_by_email(" USER@example.com "), user)
+
+	def test_authentication_returns_tokens_only_for_valid_credentials(self):
+		create_user("user@example.com", "cT9#vQ2!mL7@pR4")
+
+		tokens = require_authentication("user@example.com", "cT9#vQ2!mL7@pR4")
+
+		self.assertIsNotNone(tokens)
+		assert tokens is not None
+		self.assertTrue(tokens["access"])
+		self.assertTrue(tokens["refresh"])
+		self.assertIsNone(require_authentication("user@example.com", "wrong-password"))
+
+	def test_create_user_rejects_duplicate_email_and_invalid_password(self):
+		create_user("user@example.com", "cT9#vQ2!mL7@pR4")
+
+		with self.assertRaises(ValueError):
+			create_user("USER@example.com", "cT9#vQ2!mL7@pR4")
+		with self.assertRaises(ValidationError):
+			create_user("other@example.com", "123")
+
+	def test_email_lookup_rejects_ambiguous_matches(self):
+		User.objects.create_user(
+			username="legacy-one", email="duplicate@example.com", password="password"
+		)
+		User.objects.create_user(
+			username="legacy-two", email="DUPLICATE@example.com", password="password"
+		)
+
+		self.assertIsNone(get_user_by_email("duplicate@example.com"))
+
+
+class AuthenticationPageTests(TestCase):
+	def test_registration_creates_account_and_starts_session(self):
+		password = "cT9#vQ2!mL7@pR4"
+		response = self.client.post(
+			reverse("register"),
+			{
+				"email": "web-user@example.com",
+				"password": password,
+				"password_confirm": password,
+			},
+		)
+
+		self.assertRedirects(response, reverse("api_dashboard"))
+		user = User.objects.get(email="web-user@example.com")
+		self.assertTrue(user.check_password(password))
+		self.assertEqual(self.client.session["_auth_user_id"], str(user.pk))
+
+	def test_login_accepts_email_and_password(self):
+		password = "cT9#vQ2!mL7@pR4"
+		User.objects.create_user(
+			username="login-user@example.com",
+			email="login-user@example.com",
+			password=password,
+		)
+
+		response = self.client.post(
+			reverse("login"),
+			{"email": "login-user@example.com", "password": password},
+		)
+
+		self.assertRedirects(response, reverse("api_dashboard"))
+		self.assertIn("_auth_user_id", self.client.session)
+
+	def test_dashboard_redirects_anonymous_users_to_login(self):
+		response = self.client.get(reverse("api_dashboard"))
+
+		self.assertEqual(response.status_code, 302)
+		self.assertIn(reverse("login"), response.url)
+
+
+class AuthenticatedTestCase(TestCase):
 	def setUp(self):
+		self.user = User.objects.create_user(
+			username="test-user@example.com",
+			email="test-user@example.com",
+			password="test-password",
+		)
+		self.client.force_login(self.user)
+
+
+class QCWorkbookDownloadTests(AuthenticatedTestCase):
+	def setUp(self):
+		super().setUp()
 		self.record = ReceivedPredator.objects.create(
 			supplier_name="Test supplier",
 			number_of_tubs=3,
@@ -48,7 +141,7 @@ class QCWorkbookDownloadTests(TestCase):
 		self.assertEqual(response.status_code, 404)
 
 
-class DashboardRateIndicatorTests(TestCase):
+class DashboardRateIndicatorTests(AuthenticatedTestCase):
 	def test_dashboard_search_finds_batch_number_and_supplier(self):
 		ReceivedPredator.objects.create(
 			supplier_name="K2A",
@@ -123,7 +216,7 @@ class DashboardRateIndicatorTests(TestCase):
 		self.assertContains(response, "Prey mortality")
 
 
-class QCPdfReportTests(TestCase):
+class QCPdfReportTests(AuthenticatedTestCase):
 	def test_pdf_includes_saved_comment(self):
 		comment = "Saved QC comment for this batch"
 		record = ReceivedPredator.objects.create(

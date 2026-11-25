@@ -1,17 +1,74 @@
 from datetime import timedelta
 from io import BytesIO
 
+from django.contrib.auth import login as auth_login, logout as auth_logout
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db.models import Avg, Count, Q, Sum
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
+from .forms import EmailLoginForm, RegistrationForm
 from .models import ReceivedPredator
 
 
+def register(request):
+    if request.user.is_authenticated:
+        return redirect("api_dashboard")
+
+    form = RegistrationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            user = form.save()
+        except (ValidationError, ValueError) as error:
+            form.add_error(None, error)
+        else:
+            auth_login(request, user)
+            return redirect("api_dashboard")
+
+    return render(request, "api/auth.html", {"form": form, "mode": "register"})
+
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect("api_dashboard")
+
+    form = EmailLoginForm(request.POST or None, request=request)
+    if request.method == "POST" and form.is_valid():
+        auth_login(request, form.get_user())
+        next_url = request.POST.get("next") or request.GET.get("next")
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            return redirect(next_url)
+        return redirect("api_dashboard")
+
+    return render(
+        request,
+        "api/auth.html",
+        {
+            "form": form,
+            "mode": "login",
+            "next_url": request.GET.get("next", ""),
+        },
+    )
+
+
+@require_POST
+def logout_view(request):
+    auth_logout(request)
+    return redirect("login")
+
+
+@login_required(login_url="login")
 def dashboard(request):
     records = ReceivedPredator.objects.all()
     status = request.GET.get("status")
@@ -61,6 +118,7 @@ def dashboard(request):
     return render(request, "api/dashboard.html", context)
 
 
+@login_required(login_url="login")
 def create_received_predator(request):
     if request.method == "POST":
         try:
@@ -88,6 +146,7 @@ def create_received_predator(request):
     return render(request, "api/create.html")
 
 
+@login_required(login_url="login")
 def received_predator_detail(request, pk):
     record = get_object_or_404(ReceivedPredator, pk=pk)
 
@@ -101,6 +160,7 @@ def received_predator_detail(request, pk):
     return render(request, "api/detail.html", {"record": record})
 
 
+@login_required(login_url="login")
 def edit_received_predator(request, pk):
     record = get_object_or_404(ReceivedPredator, pk=pk)
 
@@ -127,6 +187,7 @@ def edit_received_predator(request, pk):
     return render(request, "api/edit.html", {"record": record})
 
 
+@login_required(login_url="login")
 def delete_received_predator(request, pk):
     record = get_object_or_404(ReceivedPredator, pk=pk)
 
@@ -138,6 +199,7 @@ def delete_received_predator(request, pk):
     return render(request, "api/delete.html", {"record": record})
 
 
+@login_required(login_url="login")
 def report(request):
     records = ReceivedPredator.objects.all()
     status = request.GET.get("status")
@@ -166,6 +228,7 @@ def report(request):
     return render(request, "api/report.html", context)
 
 
+@login_required(login_url="login")
 def download_qc_workbook(request, period):
     today = timezone.localdate()
     if period == "daily":

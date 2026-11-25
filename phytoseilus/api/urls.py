@@ -8,9 +8,15 @@ from .views import (
     delete_received_predator,
     report,
     download_qc_workbook,
+    register,
+    login_view,
+    logout_view,
 )
 
 urlpatterns = [
+    path('accounts/register/', register, name='register'),
+    path('accounts/login/', login_view, name='login'),
+    path('accounts/logout/', logout_view, name='logout'),
     path('', dashboard, name='api_dashboard'),
     path('received/new/', create_received_predator, name='received_predator_create'),
     path('received/<int:pk>/', received_predator_detail, name='received_predator_detail'),

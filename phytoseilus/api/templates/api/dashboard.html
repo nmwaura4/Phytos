@@ -67,6 +67,21 @@
             padding: 10px 14px;
         }
 
+        .header-actions form {
+            margin: 0;
+        }
+
+        .header-actions button {
+            border: 0;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .user-email {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
         .header-actions {
             display: flex;
             align-items: center;
@@ -205,7 +220,7 @@
                 style="height: 48px; width: auto; object-fit: contain;"
             >
             <strong>Real Ipm</strong>
-            <strong>Phytoseilus Quality Assessment</strong>
+            <strong>Phytoseiulus Quality Assessment</strong>
         </div>
 
         <nav class="header-actions" aria-label="Dashboard actions">
@@ -213,6 +228,11 @@
             <a href="{% url 'received_predator_create' %}">
                 + New reception
             </a>
+            <span class="user-email">{{ request.user.email }}</span>
+            <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button class="button" type="submit">Sign out</button>
+            </form>
         </nav>
     </header>
 
