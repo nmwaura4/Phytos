@@ -38,6 +38,17 @@ class ReceivedPredator(models.Model):
         default=Status.PENDING,
     )
     comments = models.TextField(blank=True)
+    signature_name = models.CharField(max_length=100, blank=True)
+    signature_date = models.DateField(blank=True, null=True)
+    signature_designation = models.CharField(
+        max_length=20,
+        blank=True,
+        choices=[
+            ("technician", "Technician"),
+            ("supervisor", "Supervisor"),
+            ("manager", "Manager"),
+        ],
+    )
 
     class Meta:
         ordering = ["-received_at"]

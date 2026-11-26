@@ -237,6 +237,29 @@
                 <textarea name="comments" rows="4">{{ record.comments }}</textarea>
             </p>
 
+            <p>
+                <label><strong>Signature name</strong></label>
+                <br>
+                <input type="text" name="signature_name" value="{{ record.signature_name }}">
+            </p>
+
+            <p>
+                <label><strong>Signature date</strong></label>
+                <br>
+                <input type="date" name="signature_date" value="{{ record.signature_date|date:'Y-m-d' }}">
+            </p>
+
+            <p>
+                <label><strong>Designation</strong></label>
+                <br>
+                <select name="signature_designation">
+                    <option value="">Select designation</option>
+                    <option value="technician" {% if record.signature_designation == 'technician' %}selected{% endif %}>Technician</option>
+                    <option value="supervisor" {% if record.signature_designation == 'supervisor' %}selected{% endif %}>Supervisor</option>
+                    <option value="manager" {% if record.signature_designation == 'manager' %}selected{% endif %}>Manager</option>
+                </select>
+            </p>
+
             <div class="actions">
                 <button class="button" type="submit">Update status</button>
                 <a class="button secondary" href="{% url 'received_predator_edit' record.pk %}">Edit</a>

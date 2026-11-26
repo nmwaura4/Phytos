@@ -64,11 +64,12 @@ class ReceivedPredatorViewSet(viewsets.ModelViewSet):
         pdf.setFont("Helvetica", 10)
         pdf.drawString(145, height - 108, "Phytoseiulus Quality Report")
 
-        pdf.setFont("Helvetica-Bold", 9)
-        pdf.drawRightString(width - 50, height - 72, "QUALITY REPORT")
         pdf.setFont("Helvetica", 9)
-        pdf.drawRightString(width - 50, height - 94, f"Batch: {received.batch_number}")
-        pdf.drawRightString(width - 50, height - 108, received.received_at.strftime("%Y-%m-%d"))
+        pdf.drawString(
+            145,
+            height - 122,
+            f"Batch: {received.batch_number}  |  {received.received_at.strftime('%Y-%m-%d')}",
+        )
 
         # Phytoseiulus-style insect emoji and legacy title removed to keep letterhead clean.
 
@@ -94,7 +95,7 @@ class ReceivedPredatorViewSet(viewsets.ModelViewSet):
 
         y = height - 160
         for label, value in rows:
-            if y < 50:
+            if y < 115:
                 pdf.showPage()
                 pdf.setFillColorRGB(0, 0, 0)
                 y = height - 60
@@ -114,6 +115,39 @@ class ReceivedPredatorViewSet(viewsets.ModelViewSet):
             else:
                 pdf.drawString(170, y, str(value))
                 y -= 28
+
+        # Footer divider and signature area
+        pdf.setStrokeColorRGB(0.118, 0.420, 0.271)
+        pdf.setLineWidth(1)
+        pdf.line(50, 95, width - 50, 95)
+
+        pdf.setStrokeColorRGB(0, 0, 0)
+        pdf.setLineWidth(0.8)
+        pdf.line(50, 55, 250, 55)
+
+        pdf.setFillColorRGB(0, 0, 0)
+        pdf.setFont("Helvetica-Bold", 9)
+        pdf.drawString(50, 42, "Date")
+
+        pdf.setFont("Helvetica", 9)
+
+        signature_name = received.signature_name or "________________"
+        pdf.drawString(50, 58, signature_name)
+
+        signature_date = (
+            received.signature_date.strftime("%Y-%m-%d")
+            if received.signature_date
+            else "________________"
+        )
+        pdf.drawString(50, 42, f"Date: {signature_date}")
+
+        designation = (
+            received.get_signature_designation_display()
+            if received.signature_designation
+            else ""
+        )
+        if designation:
+            pdf.drawString(50, 26, f"Designation: {designation}")
 
         pdf.save()
         return response

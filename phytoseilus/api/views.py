@@ -153,6 +153,10 @@ def received_predator_detail(request, pk):
     if request.method == "POST":
         record.status = request.POST.get("status", record.status)
         record.comments = request.POST.get("comments", record.comments)
+        record.signature_name = request.POST.get("signature_name", "").strip()
+        record.signature_designation = request.POST.get("signature_designation", "")
+        signature_date = request.POST.get("signature_date", "")
+        record.signature_date = signature_date or None
         record.save()
         messages.success(request, "Quality status updated.")
         return redirect("received_predator_detail", pk=record.pk)
